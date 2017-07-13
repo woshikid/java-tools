@@ -32,6 +32,21 @@ public class SSRMerge {
 	private static Map<String, Object> totalJson;
 	
 	/**
+	 * 文件被修改
+	 */
+	private static boolean modified = false;
+	
+	/**
+	 * 文件被删除
+	 */
+	private static boolean deleted = false;
+	
+	/**
+	 * 每次返回的服务器数目
+	 */
+	private static final int COUNT = 5;
+	
+	/**
 	 * 合并文件内容到内存
 	 * @return
 	 * @throws Exception
@@ -97,6 +112,40 @@ public class SSRMerge {
 		path.register(watcher, StandardWatchEventKinds.ENTRY_MODIFY,
 				StandardWatchEventKinds.ENTRY_DELETE);
 		
+		new Thread(() -> {
+			try {
+				//用来统计找到新条目的概率
+				int circle = 0;
+				double probability = 100.0;
+				
+				while (true) {
+					Thread.sleep(100);
+					
+					if (modified){
+						//等待文件完全写入并关闭
+						Thread.sleep(1000);
+						
+						int count = merge();
+						probability = Math.min(probability, Math.max(100.0 * count / COUNT, 100.0 / ++circle / COUNT));
+						System.out.println("found:\t" + count + "\tprobability:\t" + String.format("%.2f%%", probability));
+						
+						if (count > 0) circle = 0;
+						modified = false;
+					}
+					
+					if (deleted) {
+						int count = export();
+						System.out.println("\ntotal:\t" + count);
+						
+						System.exit(0);
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}).start();
+		
 		while (true) {
 			WatchKey key = watcher.take();
 			
@@ -105,14 +154,9 @@ public class SSRMerge {
 				if (!changed.endsWith(args[1])) continue;
 				
 				if (event.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
-					//等待文件完全写入并关闭
-					Thread.sleep(2000);
-					int count = merge();
-					System.out.println("found:\t" + count);
+					modified = true;
 				} else {
-					int count = export();
-					System.out.println("\ntotal:\t" + count);
-					return;
+					deleted = true;
 				}
 			}
 			
