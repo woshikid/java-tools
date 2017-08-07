@@ -22,6 +22,11 @@
   		<artifactId>fastjson</artifactId>
   		<version>1.2.33</version>
   	</dependency>
+  	<dependency>
+  		<groupId>com.github.woshikid</groupId>
+  		<artifactId>java-utils</artifactId>
+  		<version>1.0.1</version>
+  	</dependency>
   </dependencies>
   <build>
   	<finalName>woshikid-tools</finalName>
